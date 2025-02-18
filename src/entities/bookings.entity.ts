@@ -1,5 +1,5 @@
 import { ServiceTypeEnum } from "src/models/bookings.model";
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, DeleteDateColumn } from "typeorm";
 
 @Entity('boookings')
 export class BookingsEntity {
@@ -23,4 +23,13 @@ export class BookingsEntity {
 
     @Column()
     public phone: string;
+
+    @CreateDateColumn()
+    public createdAt: Date;
+
+    @UpdateDateColumn()
+    public updatedAt: Date;
+
+    @DeleteDateColumn()
+    public deletedAt: Date;
 }
