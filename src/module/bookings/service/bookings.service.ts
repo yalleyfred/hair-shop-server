@@ -13,23 +13,23 @@ export class BookingsService {
   ) {}
 
   public async findAll(): Promise<Bookings[]> {
-    return this.bookingRepository.find();
+    return await this.bookingRepository.find();
   }
 
   public async findOne(id: string): Promise<Bookings | null> {
-    return this.bookingRepository.findOneBy({id});
+    return await this.bookingRepository.findOneBy({id});
   }
 
-  public create(createBookingDto: CreateBookingDto): Promise<Bookings> {
+  public async create(createBookingDto: CreateBookingDto): Promise<Bookings> {
     const booking = this.bookingRepository.create(createBookingDto);
-    return this.bookingRepository.save(booking);
+    return await this.bookingRepository.save(booking);
   }
 
-  public update(id: string, updateBookingDto: UpdateBookingDto) {
-    return this.bookingRepository.update(id, updateBookingDto);
+  public async update(id: string, updateBookingDto: UpdateBookingDto) {
+    return await this.bookingRepository.update(id, updateBookingDto);
   }
 
-  public remove(booking: Bookings) {
-    return this.bookingRepository.softRemove(booking);
+  public async remove(booking: Bookings) {
+    return await this.bookingRepository.softRemove(booking);
   }
 }

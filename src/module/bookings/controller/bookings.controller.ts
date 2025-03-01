@@ -3,33 +3,34 @@ import { BookingsService } from '../service/bookings.service';
 import { CreateBookingDto, UpdateBookingDto } from 'src/Dtos/bookings.dto';
 import { Bookings } from 'src/models/bookings.model';
 
-@Controller('bookings')
+@Controller('booking')
 export class BookingsController {
 
     constructor(private readonly bookingService: BookingsService) {}
     
     @Get()
-    public findAll() {
+    public async findAll() {
         return this.bookingService.findAll();
     }
 
     @Get(':id')
-    public findOne(@Param('id') id: string) {
-        return this.bookingService.findOne(id);
+    public async findOne(@Param('id') id: string) {
+        return await this.bookingService.findOne(id);
     }
 
     @Post()
-    public create(@Body() createBookingDto: CreateBookingDto) {
-        return this.bookingService.create(createBookingDto);
+    public async create(@Body() createBookingDto: CreateBookingDto) {
+        console.log('createBookingDto', createBookingDto);
+        return await this.bookingService.create(createBookingDto);
     }
 
     @Put(':id')
-    public update(@Param('id') id: string, @Body() updateBookingDto: UpdateBookingDto) {
-        return this.bookingService.update(id, updateBookingDto);
+    public async update(@Param('id') id: string, @Body() updateBookingDto: UpdateBookingDto) {
+        return await this.bookingService.update(id, updateBookingDto);
     }
 
     @Delete(':id')
-    public remove(@Body() bookings: Bookings) {
-        return this.bookingService.remove(bookings);
+    public async remove(@Body() bookings: Bookings) {
+        return await this.bookingService.remove(bookings);
     }
 }

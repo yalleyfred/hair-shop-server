@@ -11,3 +11,8 @@ export interface Bookings {
     email: string;
     phone: string;
 }
+
+export type ServiceType = {
+    name: ServiceTypeEnum;
+    price: number;
+}
