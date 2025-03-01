@@ -12,10 +12,6 @@ export class CreateProductDto {
     @IsNumber()
     @IsNotEmpty()
     public price: number;
-
-    @IsString()
-    @IsNotEmpty()
-    public productUrl: string;
 }
 
 export class UpdateProductDto extends CreateProductDto {}

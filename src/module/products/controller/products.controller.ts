@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ProductsService } from '../service/products.service';
 import { CreateProductDto, Products, UpdateProductDto } from 'src/Dtos/products.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
 
 @Controller('products')
 export class ProductsController {
-    constructor(private readonly productsService: ProductsService) {}
+    constructor(private readonly productsService: ProductsService, private cloudinaryService: CloudinaryService) {}
 
     @Get()
     public findAll() {
@@ -17,8 +19,17 @@ export class ProductsController {
     }
 
     @Post()
-    public create(@Body() createProductDto: CreateProductDto) {
-        return this.productsService.create(createProductDto);
+    @UseInterceptors(FileInterceptor('image'))
+    public async create(@Body() createProductDto: CreateProductDto, @UploadedFile() file: Express.Multer.File) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+            throw new Error('Only image files are allowed!');
+          }
+          const cloudinaryResponse = await this.cloudinaryService.uploadFile(file);
+        const product = await this.productsService.create(createProductDto);
+        return {
+            ...product,
+            image: cloudinaryResponse.secure_url
+        }
     }
 
     @Put(':id')

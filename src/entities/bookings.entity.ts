@@ -9,6 +9,9 @@ export class BookingsEntity {
     @Column()
     public serviceType: ServiceTypeEnum;
 
+    @Column({type: 'numeric'})
+    public price: number;
+
     @Column({ type: 'timestamptz' })
     public appointmentDate: Date;
 

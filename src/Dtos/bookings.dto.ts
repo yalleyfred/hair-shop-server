@@ -1,11 +1,15 @@
-import { IsDate, IsEnum, IsNotEmpty, IsString } from "class-validator";
-import { ServiceTypeEnum } from "src/models/bookings.model";
+import { IsDate, IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { ServiceType, ServiceTypeEnum } from "src/models/bookings.model";
 
 
 export class CreateBookingDto {
-    @IsEnum(ServiceTypeEnum)
     @IsNotEmpty()
+    @IsEnum(ServiceTypeEnum)
     public serviceType: ServiceTypeEnum;
+
+    @IsNotEmpty()
+    @IsNumber()
+    public price: number;
 
     @IsNotEmpty()
     @IsDate()
