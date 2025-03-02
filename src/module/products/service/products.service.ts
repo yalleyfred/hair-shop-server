@@ -19,8 +19,8 @@ export class ProductsService {
         return await this.productRepository.findOneBy({id});
     }
 
-    public async create(createProductDto: CreateProductDto): Promise<Products> {
-        const product = this.productRepository.create(createProductDto);
+    public async create(createProductDto: CreateProductDto, productUrl: string): Promise<Products> {
+        const product = this.productRepository.create({...createProductDto, productUrl});
         return await this.productRepository.save(product);
     }
 

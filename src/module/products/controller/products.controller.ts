@@ -25,7 +25,7 @@ export class ProductsController {
             throw new Error('Only image files are allowed!');
           }
           const cloudinaryResponse = await this.cloudinaryService.uploadFile(file);
-        const product = await this.productsService.create(createProductDto);
+        const product = await this.productsService.create(createProductDto, cloudinaryResponse.secure_url);
         return {
             ...product,
             image: cloudinaryResponse.secure_url
