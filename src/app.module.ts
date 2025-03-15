@@ -27,6 +27,13 @@ import { PaymentModule } from './module/payment/payment.module';
       url: process.env.DB_URL,
       entities: [BookingsEntity, ProductsEntity, User],
       synchronize: true,
+      logging: true,
+      ssl: true,
+      extra: {
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      },
     }),
     TypeOrmModule.forFeature([User]), // Make UserRepository available
     BookingsModule,
