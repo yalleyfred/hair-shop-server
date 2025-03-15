@@ -24,8 +24,8 @@ export class ProductsService {
         return await this.productRepository.save(product);
     }
 
-    public async update(id: string, updateProductDto: UpdateProductDto) {
-        return await this.productRepository.update(id, updateProductDto);
+    public async update(id: string, updateProductDto: UpdateProductDto, productUrl?: string) {
+        return await this.productRepository.update(id, {...updateProductDto, productUrl});
     }
 
     public async remove(product: Products) {

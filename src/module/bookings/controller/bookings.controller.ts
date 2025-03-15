@@ -20,7 +20,6 @@ export class BookingsController {
 
     @Post()
     public async create(@Body() createBookingDto: CreateBookingDto) {
-        console.log('createBookingDto', createBookingDto);
         return await this.bookingService.create(createBookingDto);
     }
 

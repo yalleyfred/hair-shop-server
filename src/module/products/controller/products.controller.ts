@@ -33,7 +33,15 @@ export class ProductsController {
     }
 
     @Put(':id')
-    public update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
+    @UseInterceptors(FileInterceptor('image'))
+    public async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @UploadedFile() file?: Express.Multer.File) {
+        if (file && !file?.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+            throw new Error('Only image files are allowed!');
+          }
+        if(file) {
+            const cloudinaryResponse = await this.cloudinaryService.uploadFile(file);
+            return this.productsService.update(id, updateProductDto, cloudinaryResponse.secure_url);
+        }
         return this.productsService.update(id, updateProductDto);
     }   
 
