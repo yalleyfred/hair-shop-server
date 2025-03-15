@@ -24,11 +24,7 @@ import { PaymentModule } from './module/payment/payment.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST,
-      database: process.env.DB,
-      password: process.env.DB_PASSWORD,
-      username: process.env.DB_USERNAME,
-      port: 5433,
+      url: process.env.DB_URL,
       entities: [BookingsEntity, ProductsEntity, User],
       synchronize: true,
     }),
