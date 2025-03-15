@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreateBookingDto, UpdateBookingDto } from 'src/Dtos/bookings.dto';
 import { BookingsEntity } from 'src/entities/bookings.entity';
 import { Bookings } from 'src/models/bookings.model';
+import { EmailService } from 'src/services/email/email.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class BookingsService {
   constructor(
     @InjectRepository(BookingsEntity)
     private readonly bookingRepository: Repository<Bookings>,
+    private readonly emailService: EmailService,
   ) {}
 
   public async findAll(): Promise<Bookings[]> {
@@ -22,6 +24,7 @@ export class BookingsService {
 
   public async create(createBookingDto: CreateBookingDto): Promise<Bookings> {
     const booking = this.bookingRepository.create(createBookingDto);
+    await this.emailService.sendBookingEmail(booking);
     return await this.bookingRepository.save(booking);
   }
 

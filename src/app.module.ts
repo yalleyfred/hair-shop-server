@@ -11,9 +11,14 @@ import { CloudinaryService } from './services/cloudinary/cloudinary.service';
 import { AuthModule } from './module/auth/auth.module';
 import { UserService } from './services/user/user.service';
 import { User } from './entities/user.entity';
+import { EmailService } from './services/email/email.service';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { mailerConfig } from './mailer.config';
+import { PaymentModule } from './module/payment/payment.module';
 
 @Module({
   imports: [
+    MailerModule.forRoot(mailerConfig),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -31,8 +36,9 @@ import { User } from './entities/user.entity';
     BookingsModule,
     ProductsModule,
     AuthModule,
+    PaymentModule,
   ],
   controllers: [AppController],
-  providers: [AppService, CloudinaryService, UserService],
+  providers: [AppService, CloudinaryService, UserService, EmailService],
 })
 export class AppModule {}
