@@ -3,6 +3,8 @@ import { ProductsService } from '../service/products.service';
 import { CreateProductDto, Products, UpdateProductDto } from 'src/Dtos/products.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
+import { Express } from 'express';
+
 
 @Controller('products')
 export class ProductsController {
