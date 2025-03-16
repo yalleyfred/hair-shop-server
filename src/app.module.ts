@@ -16,6 +16,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { mailerConfig } from './mailer.config';
 import { PaymentModule } from './module/payment/payment.module';
 
+const isProduction = process.env.NODE_ENV === 'production';
 @Module({
   imports: [
     MailerModule.forRoot(mailerConfig),
@@ -24,16 +25,18 @@ import { PaymentModule } from './module/payment/payment.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DB_URL,
+      url: isProduction ? process.env.DB_URL : process.env.DB_LOCAL_URL,
       entities: [BookingsEntity, ProductsEntity, User],
       synchronize: true,
-      logging: true,
-      ssl: true,
-      extra: {
-        ssl: {
-          rejectUnauthorized: false,
-        },
-      },
+      logging: isProduction,
+      ssl: isProduction,
+      extra: isProduction
+        ? {
+            ssl: {
+              rejectUnauthorized: false,
+            },
+          }
+        : {},
     }),
     TypeOrmModule.forFeature([User]), // Make UserRepository available
     BookingsModule,
