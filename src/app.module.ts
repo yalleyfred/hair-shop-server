@@ -15,7 +15,9 @@ import { EmailService } from './services/email/email.service';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { mailerConfig } from './mailer.config';
 import { PaymentModule } from './module/payment/payment.module';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
 @Module({
   imports: [
@@ -25,9 +27,9 @@ const isProduction = process.env.NODE_ENV === 'production';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: isProduction ? process.env.DB_URL : process.env.DB_LOCAL_URL,
+      url: isProduction ? process.env.DB_URL: process.env.DB_LOCAL_URL,
       entities: [BookingsEntity, ProductsEntity, User],
-      synchronize: true,
+      synchronize: !isProduction,
       logging: isProduction,
       ssl: isProduction,
       extra: isProduction
