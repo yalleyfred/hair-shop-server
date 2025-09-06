@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 
-
 // Load .env file
 dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';

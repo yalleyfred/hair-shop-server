@@ -3,16 +3,16 @@ import * as path from 'path';
 
 export const mailerConfig = {
   transport: {
-    host: 'smtp-relay.brevo.com',
-    port: 587,
+    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
     secure: false,
     auth: {
-        user: "879124001@smtp-brevo.com",
-        pass: "tR1y6AaGjNCJ4H98",
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASSWORD || '',
     },
   },
   defaults: {
-    from: 'yalleyfred@gmail.com', // Default sender
+    from: process.env.EMAIL_FROM || 'noreply@example.com', // Default sender
   },
   template: {
     dir: path.join(__dirname, '../src/templates'),
