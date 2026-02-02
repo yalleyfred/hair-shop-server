@@ -1,5 +1,4 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
 @Injectable()
@@ -7,8 +6,8 @@ export class PaymentService {
   private readonly paystackSecretKey: string;
   private readonly paystackBaseUrl = 'https://api.paystack.co';
 
-  constructor(private configService: ConfigService) {
-    this.paystackSecretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY') || '';
+  constructor() {
+    this.paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || '';
   }
 
   public async initiateMobileMoneyPayment(data: {

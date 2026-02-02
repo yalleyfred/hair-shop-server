@@ -1,10 +1,12 @@
-import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import { Bookings } from 'src/models/bookings.model';
+import * as nodemailer from 'nodemailer';
+import * as pug from 'pug';
+import { defaultFrom, getTemplatePath, mailTransport } from '../../mailer.config';
 
 @Injectable()
 export class EmailService {
-    constructor(private readonly mailerService: MailerService) {}
+  private readonly transporter = nodemailer.createTransport(mailTransport);
 
   public async sendBookingEmail(booking: Bookings): Promise<void> {
     const {email, name, appointmentDate, appointmentTime, serviceType, phone} = booking;
@@ -14,19 +16,21 @@ export class EmailService {
       day: 'numeric',
     });
     try {
-       await this.mailerService.sendMail({
+      const html = pug.renderFile(getTemplatePath('bookings'), {
+        name,
+        bookingDate,
+        appointmentTime,
+        serviceType,
+        phone,
+        email,
+      });
+
+      await this.transporter.sendMail({
+        from: defaultFrom,
         to: email,
         bcc: 'yalleyfred@gmail.com',
         subject: 'Welcome to Our App!',
-        template: '../../templates/bookings',
-        context: {
-          name,
-          bookingDate,
-          appointmentTime,
-          serviceType,
-          phone,
-          email,
-        },
+        html,
       });
       console.log('Email sent')
     } catch (error) {
