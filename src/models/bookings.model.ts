@@ -5,6 +5,7 @@ export enum ServiceTypeEnum {
 export interface Bookings {
     id: string;
     serviceType: ServiceTypeEnum;
+    price: number;
     appointmentDate: Date;
     appointmentTime: string;
     name: string;

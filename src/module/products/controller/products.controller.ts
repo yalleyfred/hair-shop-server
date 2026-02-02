@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ProductsService } from '../service/products.service';
-import { CreateProductDto, Products, UpdateProductDto } from '../../../Dtos/products.dto';
+import { CreateProductDto, UpdateProductDto } from '../../../Dtos/products.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from '../../../services/cloudinary/cloudinary.service';
 import { Express } from 'express';
@@ -48,7 +48,7 @@ export class ProductsController {
     }   
 
     @Delete(':id')
-    public remove(@Body() products: Products) {
-        return this.productsService.remove(products);
+    public remove(@Param('id') id: string) {
+        return this.productsService.remove(id);
     }
 }

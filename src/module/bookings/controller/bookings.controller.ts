@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { BookingsService } from '../service/bookings.service';
 import { CreateBookingDto, UpdateBookingDto } from '../../../Dtos/bookings.dto';
-import { Bookings } from '../../../models/bookings.model';
 
 @Controller('booking')
 export class BookingsController {
@@ -29,7 +28,7 @@ export class BookingsController {
     }
 
     @Delete(':id')
-    public async remove(@Body() bookings: Bookings) {
-        return await this.bookingService.remove(bookings);
+    public async remove(@Param('id') id: string) {
+        return await this.bookingService.remove(id);
     }
 }

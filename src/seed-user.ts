@@ -2,8 +2,10 @@ import * as bcrypt from 'bcrypt';
 import { Client } from 'pg';
 import 'dotenv/config';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const client = new Client({
-  connectionString: process.env.DB_URL,
+  connectionString: isProduction ? process.env.DB_URL : process.env.DB_LOCAL_URL,
 });
 
 

@@ -10,19 +10,19 @@ import { Repository } from 'typeorm';
 export class BookingsService {
   constructor(
     @InjectRepository(BookingsEntity)
-    private readonly bookingRepository: Repository<Bookings>,
+    private readonly bookingRepository: Repository<BookingsEntity>,
     private readonly emailService: EmailService,
   ) {}
 
-  public async findAll(): Promise<Bookings[]> {
+  public async findAll(): Promise<BookingsEntity[]> {
     return await this.bookingRepository.find();
   }
 
-  public async findOne(id: string): Promise<Bookings | null> {
+  public async findOne(id: string): Promise<BookingsEntity | null> {
     return await this.bookingRepository.findOneBy({id});
   }
 
-  public async create(createBookingDto: CreateBookingDto): Promise<Bookings> {
+  public async create(createBookingDto: CreateBookingDto): Promise<BookingsEntity> {
     const booking = this.bookingRepository.create(createBookingDto);
     await this.emailService.sendBookingEmail(booking);
     return await this.bookingRepository.save(booking);
@@ -32,7 +32,7 @@ export class BookingsService {
     return await this.bookingRepository.update(id, updateBookingDto);
   }
 
-  public async remove(booking: Bookings) {
-    return await this.bookingRepository.softRemove(booking);
+  public async remove(id: string) {
+    return await this.bookingRepository.softDelete(id);
   }
 }
