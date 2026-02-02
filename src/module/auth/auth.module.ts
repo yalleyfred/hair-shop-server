@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './service/auth.service';
 import { AuthController } from './controller/auth.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { User } from 'src/entities/user.entity';
+import { User } from '../../entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserService } from 'src/services/user/user.service';
-import { JwtStrategy } from 'src/services/jwt/jwt.strategy';
+import { UserService } from '../../services/user/user.service';
+import { JwtStrategy } from '../../services/jwt/jwt.strategy';
 
 @Module({
   imports: [

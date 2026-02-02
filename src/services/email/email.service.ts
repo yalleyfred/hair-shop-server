@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Bookings } from 'src/models/bookings.model';
+import { Bookings } from '../../models/bookings.model';
 import * as nodemailer from 'nodemailer';
 import * as pug from 'pug';
 import { defaultFrom, getTemplatePath, mailTransport } from '../../mailer.config';

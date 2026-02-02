@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ProductsService } from '../service/products.service';
-import { CreateProductDto, Products, UpdateProductDto } from 'src/Dtos/products.dto';
+import { CreateProductDto, Products, UpdateProductDto } from '../../../Dtos/products.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
+import { CloudinaryService } from '../../../services/cloudinary/cloudinary.service';
 import { Express } from 'express';
 
 

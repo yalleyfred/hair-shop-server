@@ -1,4 +1,4 @@
-import { ServiceTypeEnum } from "src/models/bookings.model";
+import { ServiceTypeEnum } from "../models/bookings.model";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, DeleteDateColumn } from "typeorm";
 
 @Entity('boookings')

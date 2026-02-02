@@ -1,5 +1,5 @@
 import { IsDate, IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
-import { ServiceType, ServiceTypeEnum } from "src/models/bookings.model";
+import { ServiceType, ServiceTypeEnum } from "../models/bookings.model";
 
 
 export class CreateBookingDto {

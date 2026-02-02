@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateBookingDto, UpdateBookingDto } from 'src/Dtos/bookings.dto';
-import { BookingsEntity } from 'src/entities/bookings.entity';
-import { Bookings } from 'src/models/bookings.model';
-import { EmailService } from 'src/services/email/email.service';
+import { CreateBookingDto, UpdateBookingDto } from '../../../Dtos/bookings.dto';
+import { BookingsEntity } from '../../../entities/bookings.entity';
+import { Bookings } from '../../../models/bookings.model';
+import { EmailService } from '../../../services/email/email.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
