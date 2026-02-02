@@ -9,8 +9,8 @@ const client = new Client({
 
 
 async function insertUser() {
-  const email = 'f@gmail.com';
-  const plainPassword = '12345';
+  const email = 'admin@gmail.com';
+  const plainPassword = 'admin@123';
   const hashedPassword: string = await bcrypt.hash(plainPassword, 10);
 
   try {
