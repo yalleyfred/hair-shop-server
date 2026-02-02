@@ -1,5 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
+import { createHmac } from 'crypto';
+import { BankTransferPaymentDto, CardPaymentDto, MobileMoneyPaymentDto } from '../dto/payment.dto';
 
 @Injectable()
 export class PaymentService {
@@ -8,18 +10,12 @@ export class PaymentService {
 
   constructor() {
     this.paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || '';
+    if (!this.paystackSecretKey) {
+      throw new Error('PAYSTACK_SECRET_KEY is required');
+    }
   }
 
-  public async initiateMobileMoneyPayment(data: {
-    amount: number;
-    email: string;
-    mobile_money: {
-      phone: string;
-      provider: string; // MTN, VODAFONE, AIRTEL
-    };
-    reference?: string;
-    callback_url?: string;
-  }) {
+  public async initiateMobileMoneyPayment(data: MobileMoneyPaymentDto) {
     try {
       const response = await axios.post(
         `${this.paystackBaseUrl}/charge`,
@@ -40,20 +36,20 @@ export class PaymentService {
 
       return response.data;
     } catch (error) {
-        console.log('charge error', error.response.data)
+      const axiosError = (error as { isAxiosError?: boolean; response?: { data?: any }; message?: string })
+        ?.isAxiosError
+        ? (error as { response?: { data?: any }; message?: string })
+        : undefined;
+      const responseData = axiosError?.response?.data;
+      console.log('charge error', responseData || axiosError?.message || error);
       throw new HttpException(
-        error.response?.data?.message || 'Payment initiation failed',
+        responseData?.message || 'Payment initiation failed',
         HttpStatus.BAD_REQUEST,
       );
     }
   }
 
-  public async initiateBankTransfer(data: {
-    amount: number;
-    email: string;
-    reference?: string;
-    callback_url?: string;
-  }) {
+  public async initiateBankTransfer(data: BankTransferPaymentDto) {
     try {
       const response = await axios.post(
         `${this.paystackBaseUrl}/transaction/initialize`,
@@ -75,19 +71,18 @@ export class PaymentService {
 
       return response.data;
     } catch (error) {
+      const axiosError = (error as { isAxiosError?: boolean; response?: { data?: any } })?.isAxiosError
+        ? (error as { response?: { data?: any } })
+        : undefined;
+      const responseData = axiosError?.response?.data;
       throw new HttpException(
-        error.response?.data?.message || 'Bank transfer initiation failed',
+        responseData?.message || 'Bank transfer initiation failed',
         HttpStatus.BAD_REQUEST,
       );
     }
   }
 
-  public async initiateCardPayment(data: {
-    amount: number;
-    email: string;
-    reference?: string;
-    callback_url?: string;
-  }) {
+  public async initiateCardPayment(data: CardPaymentDto) {
     try {
       const response = await axios.post(
         `${this.paystackBaseUrl}/transaction/initialize`,
@@ -109,8 +104,12 @@ export class PaymentService {
 
       return response.data;
     } catch (error) {
+      const axiosError = (error as { isAxiosError?: boolean; response?: { data?: any } })?.isAxiosError
+        ? (error as { response?: { data?: any } })
+        : undefined;
+      const responseData = axiosError?.response?.data;
       throw new HttpException(
-        error.response?.data?.message || 'Card payment initiation failed',
+        responseData?.message || 'Card payment initiation failed',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -130,8 +129,12 @@ export class PaymentService {
 
       return response.data;
     } catch (error) {
+      const axiosError = (error as { isAxiosError?: boolean; response?: { data?: any } })?.isAxiosError
+        ? (error as { response?: { data?: any } })
+        : undefined;
+      const responseData = axiosError?.response?.data;
       throw new HttpException(
-        error.response?.data?.message || 'Payment verification failed',
+        responseData?.message || 'Payment verification failed',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -151,10 +154,31 @@ export class PaymentService {
 
       return response.data;
     } catch (error) {
+      const axiosError = (error as { isAxiosError?: boolean; response?: { data?: any } })?.isAxiosError
+        ? (error as { response?: { data?: any } })
+        : undefined;
+      const responseData = axiosError?.response?.data;
       throw new HttpException(
-        error.response?.data?.message || 'Failed to get transaction status',
+        responseData?.message || 'Failed to get transaction status',
         HttpStatus.BAD_REQUEST,
       );
     }
+  }
+
+  public async handleWebhook(payload: unknown, signature?: string) {
+    if (!signature) {
+      throw new HttpException('Missing Paystack signature', HttpStatus.BAD_REQUEST);
+    }
+
+    const computedSignature = createHmac('sha512', this.paystackSecretKey)
+      .update(JSON.stringify(payload))
+      .digest('hex');
+
+    if (computedSignature !== signature) {
+      throw new HttpException('Invalid Paystack signature', HttpStatus.UNAUTHORIZED);
+    }
+
+    // TODO: Persist or react to webhook events as needed.
+    return { received: true };
   }
 }
