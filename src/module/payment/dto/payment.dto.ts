@@ -62,3 +62,13 @@ export class CardPaymentDto {
   @IsOptional()
   callback_url?: string;
 }
+
+export class MobileMoneyOtpDto {
+  @IsString()
+  @IsNotEmpty()
+  reference: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+}

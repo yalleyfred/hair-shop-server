@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Headers, HttpCode } from '@nestjs/common';
 import { PaymentService } from '../service/payment.service';
-import { BankTransferPaymentDto, CardPaymentDto, MobileMoneyPaymentDto } from '../dto/payment.dto';
+import { BankTransferPaymentDto, CardPaymentDto, MobileMoneyOtpDto, MobileMoneyPaymentDto } from '../dto/payment.dto';
 
 @Controller('payments')
 export class PaymentController {
@@ -9,6 +9,11 @@ export class PaymentController {
   @Post('mobile-money')
   public async initiateMomoPayment(@Body() paymentData: MobileMoneyPaymentDto) {
     return this.paymentService.initiateMobileMoneyPayment(paymentData);
+  }
+
+  @Post('mobile-money/otp')
+  public async submitMomoOtp(@Body() otpData: MobileMoneyOtpDto) {
+    return this.paymentService.submitMobileMoneyOtp(otpData.reference, otpData.otp);
   }
 
   @Post('bank-transfer')

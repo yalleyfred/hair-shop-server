@@ -1,6 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 import { createHmac } from 'crypto';
+import { PaymentGateway } from '../payment.gateway';
 import { BankTransferPaymentDto, CardPaymentDto, MobileMoneyPaymentDto } from '../dto/payment.dto';
 
 @Injectable()
@@ -8,7 +9,7 @@ export class PaymentService {
   private readonly paystackSecretKey: string;
   private readonly paystackBaseUrl = 'https://api.paystack.co';
 
-  constructor() {
+  constructor(private readonly gateway: PaymentGateway) {
     this.paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || '';
     if (!this.paystackSecretKey) {
       throw new Error('PAYSTACK_SECRET_KEY is required');
@@ -44,6 +45,32 @@ export class PaymentService {
       console.log('charge error', responseData || axiosError?.message || error);
       throw new HttpException(
         responseData?.message || 'Payment initiation failed',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  public async submitMobileMoneyOtp(reference: string, otp: string) {
+    try {
+      const response = await axios.post(
+        `${this.paystackBaseUrl}/charge/submit_otp`,
+        { reference, otp },
+        {
+          headers: {
+            Authorization: `Bearer ${this.paystackSecretKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      const axiosError = (error as { isAxiosError?: boolean; response?: { data?: any } })?.isAxiosError
+        ? (error as { response?: { data?: any } })
+        : undefined;
+      const responseData = axiosError?.response?.data;
+      throw new HttpException(
+        responseData?.message || 'OTP submission failed',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -176,6 +203,14 @@ export class PaymentService {
 
     if (computedSignature !== signature) {
       throw new HttpException('Invalid Paystack signature', HttpStatus.UNAUTHORIZED);
+    }
+
+    const eventData = (payload as { data?: { reference?: string; status?: string } })?.data;
+    const reference = eventData?.reference;
+    const status = eventData?.status;
+
+    if (reference && status) {
+      this.gateway.emitStatus(reference, status, eventData);
     }
 
     // TODO: Persist or react to webhook events as needed.

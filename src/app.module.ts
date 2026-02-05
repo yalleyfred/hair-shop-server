@@ -12,6 +12,9 @@ import { UserService } from './services/user/user.service';
 import { User } from './entities/user.entity';
 import { EmailService } from './services/email/email.service';
 import { PaymentModule } from './module/payment/payment.module';
+import { ServicesModule } from './module/services/services.module';
+import { ServiceCategoryEntity } from './entities/service-category.entity';
+import { ServiceEntity } from './entities/service.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -21,7 +24,7 @@ const isProduction = process.env.NODE_ENV === 'production';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: isProduction ? process.env.DB_URL: process.env.DB_LOCAL_URL,
-      entities: [BookingsEntity, ProductsEntity, User],
+      entities: [BookingsEntity, ProductsEntity, ServiceCategoryEntity, ServiceEntity, User],
       synchronize: !isProduction,
       logging: isProduction,
       ssl: isProduction,
@@ -38,6 +41,7 @@ const isProduction = process.env.NODE_ENV === 'production';
     ProductsModule,
     AuthModule,
     PaymentModule,
+    ServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService, CloudinaryService, UserService, EmailService],
