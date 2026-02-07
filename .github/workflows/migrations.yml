@@ -15,20 +15,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Run migrations
         env:
-          NODE_ENV: production
-          DB_URL: ${{ secrets.DB_URL }}
-        run: npm run migration:run
+          FLYWAY_URL: ${{ secrets.FLYWAY_URL }}
+          FLYWAY_USER: ${{ secrets.FLYWAY_USER }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+        run: |
+          if [ -z "$FLYWAY_URL" ] || [ -z "$FLYWAY_USER" ] || [ -z "$FLYWAY_PASSWORD" ]; then
+            echo "Missing Flyway secrets" >&2
+            exit 1
+          fi
+          docker run --rm \
+            -v "$PWD/db/migration:/flyway/sql" \
+            -e FLYWAY_URL \
+            -e FLYWAY_USER \
+            -e FLYWAY_PASSWORD \
+            flyway/flyway:10-alpine migrate
 
       - name: Trigger Render deploy
         env:
