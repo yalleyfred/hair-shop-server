@@ -1,0 +1,41 @@
+name: Run DB Migrations
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: migrations-main
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run migrations
+        env:
+          NODE_ENV: production
+          DB_URL: ${{ secrets.DB_URL }}
+        run: npm run migration:run
+
+      - name: Trigger Render deploy
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_HOOK }}
+        run: |
+          if [ -z "$RENDER_HOOK" ]; then
+            echo "Missing RENDER_HOOK secret" >&2
+            exit 1
+          fi
+          curl -sSf -X POST "$RENDER_HOOK" > /dev/null
