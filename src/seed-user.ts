@@ -34,4 +34,4 @@ async function insertUser() {
   }
 }
   
-insertUser();
+void insertUser();

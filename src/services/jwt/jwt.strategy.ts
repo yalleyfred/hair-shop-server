@@ -14,7 +14,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: { email?: string }) {
+    if (!payload?.email) {
+      return null;
+    }
+
     return await this.userService.findOneByEmail(payload.email); // Attach user to request
   }
 }

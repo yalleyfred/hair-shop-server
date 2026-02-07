@@ -14,6 +14,9 @@ export class ProductsEntity {
     @Column({ type: 'numeric' })
     public price: number;
 
+    @Column({ type: 'int', default: 0 })
+    public quantity: number;
+
     @Column()
     public productUrl: string;
 

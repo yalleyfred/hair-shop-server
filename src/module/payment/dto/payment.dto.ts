@@ -1,5 +1,16 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsEmail, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class PaymentProductItemDto {
+  @IsUUID()
+  @IsNotEmpty()
+  productId: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  quantity: number;
+}
 
 export class MobileMoneyDto {
   @IsString()
@@ -29,6 +40,12 @@ export class MobileMoneyPaymentDto {
   @IsString()
   @IsOptional()
   callback_url?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentProductItemDto)
+  @IsOptional()
+  products?: PaymentProductItemDto[];
 }
 
 export class BankTransferPaymentDto {
@@ -45,6 +62,12 @@ export class BankTransferPaymentDto {
   @IsString()
   @IsOptional()
   callback_url?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentProductItemDto)
+  @IsOptional()
+  products?: PaymentProductItemDto[];
 }
 
 export class CardPaymentDto {
@@ -61,6 +84,23 @@ export class CardPaymentDto {
   @IsString()
   @IsOptional()
   callback_url?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentProductItemDto)
+  @IsOptional()
+  products?: PaymentProductItemDto[];
+}
+
+export class VerifyProductPaymentDto {
+  @IsString()
+  @IsNotEmpty()
+  reference: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentProductItemDto)
+  products: PaymentProductItemDto[];
 }
 
 export class MobileMoneyOtpDto {

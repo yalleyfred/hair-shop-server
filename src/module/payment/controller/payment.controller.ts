@@ -1,6 +1,12 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Headers, HttpCode } from '@nestjs/common';
 import { PaymentService } from '../service/payment.service';
-import { BankTransferPaymentDto, CardPaymentDto, MobileMoneyOtpDto, MobileMoneyPaymentDto } from '../dto/payment.dto';
+import {
+  BankTransferPaymentDto,
+  CardPaymentDto,
+  MobileMoneyOtpDto,
+  MobileMoneyPaymentDto,
+  VerifyProductPaymentDto,
+} from '../dto/payment.dto';
 
 @Controller('payments')
 export class PaymentController {
@@ -29,6 +35,11 @@ export class PaymentController {
   @Get('verify/:reference')
   public async verifyPayment(@Param('reference') reference: string) {
     return this.paymentService.verifyPayment(reference);
+  }
+
+  @Post('verify-products')
+  public async verifyProductPayment(@Body() data: VerifyProductPaymentDto) {
+    return this.paymentService.verifyPayment(data.reference, data.products);
   }
 
   @Get('transaction/:id')
