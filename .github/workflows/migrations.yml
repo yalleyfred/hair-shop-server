@@ -41,4 +41,3 @@ jobs:
             exit 1
           fi
           curl -sSf -X POST "$RENDER_HOOK" > /dev/null
-
