@@ -5,7 +5,6 @@ import {
   CardPaymentDto,
   MobileMoneyOtpDto,
   MobileMoneyPaymentDto,
-  VerifyProductPaymentDto,
 } from '../dto/payment.dto';
 
 @Controller('payments')
@@ -35,11 +34,6 @@ export class PaymentController {
   @Get('verify/:reference')
   public async verifyPayment(@Param('reference') reference: string) {
     return this.paymentService.verifyPayment(reference);
-  }
-
-  @Post('verify-products')
-  public async verifyProductPayment(@Body() data: VerifyProductPaymentDto) {
-    return this.paymentService.verifyPayment(data.reference, data.products);
   }
 
   @Get('transaction/:id')

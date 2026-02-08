@@ -15,6 +15,7 @@ import { PaymentModule } from './module/payment/payment.module';
 import { ServicesModule } from './module/services/services.module';
 import { ServiceCategoryEntity } from './entities/service-category.entity';
 import { ServiceEntity } from './entities/service.entity';
+import { PaymentEventEntity } from './entities/payment-event.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -24,7 +25,7 @@ const isProduction = process.env.NODE_ENV === 'production';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: isProduction ? process.env.DB_URL: process.env.DB_LOCAL_URL,
-      entities: [BookingsEntity, ProductsEntity, ServiceCategoryEntity, ServiceEntity, User],
+      entities: [BookingsEntity, ProductsEntity, ServiceCategoryEntity, ServiceEntity, User, PaymentEventEntity],
       synchronize: !isProduction,
       logging: isProduction,
       ssl: isProduction,

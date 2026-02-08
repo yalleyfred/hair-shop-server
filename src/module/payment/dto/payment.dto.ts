@@ -92,17 +92,6 @@ export class CardPaymentDto {
   products?: PaymentProductItemDto[];
 }
 
-export class VerifyProductPaymentDto {
-  @IsString()
-  @IsNotEmpty()
-  reference: string;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PaymentProductItemDto)
-  products: PaymentProductItemDto[];
-}
-
 export class MobileMoneyOtpDto {
   @IsString()
   @IsNotEmpty()
