@@ -14,6 +14,6 @@ export class PaymentEventEntity {
   @Column({ type: 'jsonb', nullable: true })
   public payload: Record<string, unknown> | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   public createdAt: Date;
 }
