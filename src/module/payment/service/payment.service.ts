@@ -1,15 +1,36 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { createHmac } from 'crypto';
 import { PaymentGateway } from '../payment.gateway';
-import { BankTransferPaymentDto, CardPaymentDto, MobileMoneyPaymentDto, PaymentProductItemDto } from '../dto/payment.dto';
+import {
+  BankTransferPaymentDto,
+  CardPaymentDto,
+  MobileMoneyPaymentDto,
+  PaymentMetadataDto,
+  PaymentProductItemDto,
+} from '../dto/payment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductsEntity } from '../../../entities/products.entity';
 import { PaymentEventEntity } from '../../../entities/payment-event.entity';
 import { In, Repository } from 'typeorm';
+import { EmailService, OrderNotificationPayload } from '../../../services/email/email.service';
+
+type OrderType = 'product_purchase' | 'service_booking';
+
+type ExtractedOrderMetadata = {
+  orderType: OrderType;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  booking?: {
+    serviceType: string;
+    appointmentDate?: string | null;
+    appointmentTime?: string | null;
+  } | null;
+};
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
   private readonly paystackSecretKey: string;
   private readonly paystackBaseUrl = 'https://api.paystack.co';
 
@@ -19,6 +40,7 @@ export class PaymentService {
     private readonly productsRepository: Repository<ProductsEntity>,
     @InjectRepository(PaymentEventEntity)
     private readonly paymentEventRepository: Repository<PaymentEventEntity>,
+    private readonly emailService: EmailService,
   ) {
     this.paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || '';
     if (!this.paystackSecretKey) {
@@ -116,6 +138,214 @@ export class PaymentService {
     await productsRepository.save(products);
   }
 
+  private readNestedString(obj: unknown, path: string[]): string | null {
+    let current: unknown = obj;
+    for (const key of path) {
+      if (!current || typeof current !== 'object' || !(key in (current as Record<string, unknown>))) {
+        return null;
+      }
+      current = (current as Record<string, unknown>)[key];
+    }
+
+    return typeof current === 'string' && current.trim() ? current.trim() : null;
+  }
+
+  private getMoMoCustomerName(data: Record<string, unknown>): string | null {
+    const customerFirstName = this.readNestedString(data, ['customer', 'first_name']);
+    const customerLastName = this.readNestedString(data, ['customer', 'last_name']);
+    const fullName = [customerFirstName, customerLastName].filter(Boolean).join(' ').trim();
+    if (fullName) {
+      return fullName;
+    }
+
+    return (
+      this.readNestedString(data, ['customer', 'name']) ??
+      this.readNestedString(data, ['authorization', 'account_name'])
+    );
+  }
+
+  private getMoMoCustomerPhone(data: Record<string, unknown>): string | null {
+    return (
+      this.readNestedString(data, ['authorization', 'mobile_money_number']) ??
+      this.readNestedString(data, ['customer', 'phone']) ??
+      this.readNestedString(data, ['authorization', 'account_number'])
+    );
+  }
+
+  private getPaystackHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.paystackSecretKey}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
+  private buildMetadataForInitialization(
+    products: PaymentProductItemDto[] | undefined,
+    metadata: PaymentMetadataDto | undefined,
+  ): Record<string, unknown> {
+    return {
+      products: products ?? [],
+      orderType:
+        metadata?.orderType ??
+        ((products?.length ?? 0) > 0 ? 'product_purchase' : 'service_booking'),
+      customerName: metadata?.customerName,
+      customerPhone: metadata?.customerPhone,
+      booking: metadata?.booking,
+    };
+  }
+
+  private getOrderMetadata(payload: unknown): ExtractedOrderMetadata {
+    const metadata = (payload as { data?: { metadata?: unknown } })?.data?.metadata;
+
+    if (!metadata || typeof metadata !== 'object') {
+      return { orderType: 'product_purchase' };
+    }
+
+    const metadataObj = metadata as {
+      orderType?: unknown;
+      customerName?: unknown;
+      customerPhone?: unknown;
+      booking?: unknown;
+    };
+
+    const orderType: OrderType =
+      metadataObj.orderType === 'service_booking' ? 'service_booking' : 'product_purchase';
+
+    const booking =
+      metadataObj.booking && typeof metadataObj.booking === 'object'
+        ? {
+            serviceType:
+              typeof (metadataObj.booking as { serviceType?: unknown }).serviceType === 'string'
+                ? ((metadataObj.booking as { serviceType: string }).serviceType)
+                : 'N/A',
+            appointmentDate:
+              typeof (metadataObj.booking as { appointmentDate?: unknown }).appointmentDate === 'string'
+                ? (metadataObj.booking as { appointmentDate: string }).appointmentDate
+                : null,
+            appointmentTime:
+              typeof (metadataObj.booking as { appointmentTime?: unknown }).appointmentTime === 'string'
+                ? (metadataObj.booking as { appointmentTime: string }).appointmentTime
+                : null,
+          }
+        : null;
+
+    return {
+      orderType,
+      customerName: typeof metadataObj.customerName === 'string' ? metadataObj.customerName : null,
+      customerPhone: typeof metadataObj.customerPhone === 'string' ? metadataObj.customerPhone : null,
+      booking,
+    };
+  }
+
+  private async buildOrderNotificationPayload(
+    payload: unknown,
+    productsRepository: Repository<ProductsEntity>,
+  ): Promise<OrderNotificationPayload | null> {
+    const data = (payload as { data?: Record<string, unknown> })?.data;
+    if (!data) {
+      return null;
+    }
+
+    const reference = typeof data.reference === 'string' ? data.reference : null;
+    const customer = data.customer as { email?: unknown } | undefined;
+    const customerEmail =
+      typeof customer?.email === 'string'
+        ? customer.email
+        : typeof data.email === 'string'
+          ? data.email
+          : null;
+
+    const amountRaw = data.amount;
+    const amountPaid =
+      typeof amountRaw === 'number'
+        ? amountRaw
+        : typeof amountRaw === 'string'
+          ? Number(amountRaw)
+          : NaN;
+
+    if (!reference || !customerEmail || !Number.isFinite(amountPaid)) {
+      return null;
+    }
+
+    const orderMetadata = this.getOrderMetadata(payload);
+    const parsedProducts = this.getProductsFromWebhook(payload);
+    const momoCustomerName = this.getMoMoCustomerName(data);
+    const momoCustomerPhone = this.getMoMoCustomerPhone(data);
+
+    let products: Array<{ id: string; name: string; quantity: number; unitPrice: number }> = [];
+    if (parsedProducts.length) {
+      const productIds = parsedProducts.map((product) => product.productId);
+      const dbProducts = await productsRepository.findBy({ id: In(productIds) });
+      const productsById = new Map(dbProducts.map((product) => [product.id, product]));
+      products = parsedProducts.map((item) => {
+        const dbProduct = productsById.get(item.productId);
+        return {
+          id: item.productId,
+          name: dbProduct?.name ?? item.productId,
+          quantity: item.quantity,
+          unitPrice: Number(dbProduct?.price ?? 0),
+        };
+      });
+    }
+
+    const customerName = orderMetadata.customerName ?? momoCustomerName ?? null;
+    const customerPhone = orderMetadata.customerPhone ?? momoCustomerPhone ?? null;
+
+    return {
+      orderType: orderMetadata.orderType,
+      reference,
+      customerEmail,
+      customerName,
+      customerPhone,
+      amountPaid,
+      currency: typeof data.currency === 'string' ? data.currency : null,
+      paidAt: typeof data.paid_at === 'string' ? data.paid_at : null,
+      paymentChannel: typeof data.channel === 'string' ? data.channel : null,
+      products,
+      booking: orderMetadata.booking,
+    };
+  }
+
+  private async processSuccessfulPayment(payload: unknown): Promise<void> {
+    const eventData = (payload as { data?: { reference?: string } })?.data;
+    const reference = eventData?.reference;
+
+    if (!reference) {
+      return;
+    }
+
+    let shouldSendNotification = false;
+    let notificationPayload: OrderNotificationPayload | null = null;
+
+    await this.paymentEventRepository.manager.transaction(async (manager) => {
+      const eventRepository = manager.getRepository(PaymentEventEntity);
+      const existing = await eventRepository.findOneBy({ reference });
+      if (existing) {
+        return;
+      }
+
+      await eventRepository.save({
+        reference,
+        status: 'success',
+        payload: (eventData as Record<string, unknown>) ?? null,
+      });
+
+      const products = this.getProductsFromWebhook(payload);
+      const productsRepo = manager.getRepository(ProductsEntity);
+
+      if (products.length) {
+        await this.updateStockForProducts(products, productsRepo);
+      }
+
+      notificationPayload = await this.buildOrderNotificationPayload(payload, productsRepo);
+      shouldSendNotification = true;
+    });
+
+    if (shouldSendNotification && notificationPayload) {
+      await this.emailService.sendOrderNotifications(notificationPayload);
+    }
+  }
+
   private getProductsFromWebhook(payload: unknown): PaymentProductItemDto[] {
     const metadata = (payload as { data?: { metadata?: unknown } })?.data?.metadata;
     return this.extractProductsFromMetadata(metadata);
@@ -209,23 +439,16 @@ export class PaymentService {
           mobile_money: mobileMoney,
           reference: data.reference,
           callback_url: data.callback_url,
-          metadata: {
-            products: data.products ?? [],
-          },
+          metadata: this.buildMetadataForInitialization(data.products, data.metadata),
         },
-        {
-          headers: {
-            Authorization: `Bearer ${this.paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: this.getPaystackHeaders() }
       );
 
       return response.data;
     } catch (error) {
       const responseData = this.getAxiosResponseData(error);
       const message = this.getErrorMessage(error, 'Payment initiation failed');
-      console.log('charge error', responseData ?? message);
+      this.logger.error(`Charge initiation failed: ${message}`, JSON.stringify(responseData ?? message));
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
@@ -235,12 +458,7 @@ export class PaymentService {
       const response = await axios.post(
         `${this.paystackBaseUrl}/charge/submit_otp`,
         { reference, otp },
-        {
-          headers: {
-            Authorization: `Bearer ${this.paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: this.getPaystackHeaders() }
       );
 
       return response.data;
@@ -261,16 +479,9 @@ export class PaymentService {
           callback_url: data.callback_url,
           channels: ['bank_transfer'],
           currency: 'GHS',
-          metadata: {
-            products: data.products ?? [],
-          },
+          metadata: this.buildMetadataForInitialization(data.products, data.metadata),
         },
-        {
-          headers: {
-            Authorization: `Bearer ${this.paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: this.getPaystackHeaders() }
       );
 
       return response.data;
@@ -291,16 +502,9 @@ export class PaymentService {
           callback_url: data.callback_url,
           channels: ['card'],
           currency: 'GHS',
-          metadata: {
-            products: data.products ?? [],
-          },
+          metadata: this.buildMetadataForInitialization(data.products, data.metadata),
         },
-        {
-          headers: {
-            Authorization: `Bearer ${this.paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: this.getPaystackHeaders() }
       );
 
       return response.data;
@@ -314,18 +518,22 @@ export class PaymentService {
     try {
       const response = await axios.get(
         `${this.paystackBaseUrl}/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: this.getPaystackHeaders() }
       );
 
       const responseData = response?.data as { data?: { status?: string } } | undefined;
       const status = responseData?.data?.status;
-      if (status === 'success' && products.length) {
-        await this.updateStockForProducts(products);
+      if (status === 'success') {
+        const payload = response.data as { data?: { metadata?: Record<string, unknown> } };
+        if (products.length) {
+          payload.data = payload.data ?? {};
+          payload.data.metadata = payload.data.metadata ?? {};
+          if (!Array.isArray(payload.data.metadata.products)) {
+            payload.data.metadata.products = products;
+          }
+        }
+
+        await this.processSuccessfulPayment(payload);
       }
 
       return response.data;
@@ -339,12 +547,7 @@ export class PaymentService {
     try {
       const response = await axios.get(
         `${this.paystackBaseUrl}/transaction/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers: this.getPaystackHeaders() }
       );
 
       return response.data;
@@ -376,25 +579,7 @@ export class PaymentService {
     }
 
     if (status === 'success' && reference) {
-      const products = this.getProductsFromWebhook(payload);
-      if (products.length) {
-        await this.paymentEventRepository.manager.transaction(async (manager) => {
-          const eventRepository = manager.getRepository(PaymentEventEntity);
-          const existing = await eventRepository.findOneBy({ reference });
-          if (existing) {
-            return;
-          }
-
-          await eventRepository.save({
-            reference,
-            status,
-            payload: (eventData as Record<string, unknown>) ?? null,
-          });
-
-          const productsRepo = manager.getRepository(ProductsEntity);
-          await this.updateStockForProducts(products, productsRepo);
-        });
-      }
+      await this.processSuccessfulPayment(payload);
     }
 
     // TODO: Persist or react to webhook events as needed.
