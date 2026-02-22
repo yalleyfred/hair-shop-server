@@ -1,4 +1,4 @@
-import { IsArray, IsEmail, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsEmail, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PaymentProductItemDto {
@@ -10,6 +10,40 @@ export class PaymentProductItemDto {
   @Min(1)
   @Type(() => Number)
   quantity: number;
+}
+
+export class ServiceBookingMetadataDto {
+  @IsString()
+  @IsNotEmpty()
+  serviceType: string;
+
+  @IsString()
+  @IsNotEmpty()
+  appointmentDate: string;
+
+  @IsString()
+  @IsNotEmpty()
+  appointmentTime: string;
+}
+
+export class PaymentMetadataDto {
+  @IsString()
+  @IsOptional()
+  @IsIn(['product_purchase', 'service_booking'])
+  orderType?: 'product_purchase' | 'service_booking';
+
+  @IsString()
+  @IsOptional()
+  customerName?: string;
+
+  @IsString()
+  @IsOptional()
+  customerPhone?: string;
+
+  @ValidateNested()
+  @Type(() => ServiceBookingMetadataDto)
+  @IsOptional()
+  booking?: ServiceBookingMetadataDto;
 }
 
 export class MobileMoneyDto {
@@ -46,6 +80,11 @@ export class MobileMoneyPaymentDto {
   @Type(() => PaymentProductItemDto)
   @IsOptional()
   products?: PaymentProductItemDto[];
+
+  @ValidateNested()
+  @Type(() => PaymentMetadataDto)
+  @IsOptional()
+  metadata?: PaymentMetadataDto;
 }
 
 export class BankTransferPaymentDto {
@@ -68,6 +107,11 @@ export class BankTransferPaymentDto {
   @Type(() => PaymentProductItemDto)
   @IsOptional()
   products?: PaymentProductItemDto[];
+
+  @ValidateNested()
+  @Type(() => PaymentMetadataDto)
+  @IsOptional()
+  metadata?: PaymentMetadataDto;
 }
 
 export class CardPaymentDto {
@@ -90,6 +134,11 @@ export class CardPaymentDto {
   @Type(() => PaymentProductItemDto)
   @IsOptional()
   products?: PaymentProductItemDto[];
+
+  @ValidateNested()
+  @Type(() => PaymentMetadataDto)
+  @IsOptional()
+  metadata?: PaymentMetadataDto;
 }
 
 export class MobileMoneyOtpDto {
